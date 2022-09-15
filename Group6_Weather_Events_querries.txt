@@ -1,0 +1,76 @@
+/*View 1*/
+use weather_events;
+create or replace view event_times as
+select type_id,type_name,name,start_date, end_date
+from events
+join event_types
+using(type_id);
+
+/*view 2 2nd join clause, 1st  where clause*/
+use weather_events; 
+create or replace view event_co2 as
+select name,cost_millions,co2_ppm
+from events
+join event_atmospheres
+using (event_id)
+join atmospheric_data
+using (atmos_id)
+where cost_millions <1300;
+
+/* view 3 1st subquerry, 2nd filtering */
+use weather_events;
+create or replace view reg_pop_toll as
+select distinct name as 'event name',state_name, deaths,population, state_pop_id
+from events
+join 
+regions_affected
+using(event_id)
+join
+states 
+using(region_id)
+join
+state_populations
+using(state_id)
+where deaths in (
+select distinct deaths 
+from events
+where deaths > 200
+) 
+order by deaths;
+
+select *
+from reg_pop_toll;
+
+/*view 4 4th join clause, 3rd filtering, 1st aggregation */
+create or replace view avg_reg_state_land as
+select region_name,state_name, avg(land_area_km_sq) as 'avg_land', region_id, state_id
+from states
+join regions
+using (region_id)
+where land_area_km_sq != 10000
+group by state_id
+order by region_id;
+
+
+/*view 5 5th join clause, 2nd aggregation*/ 
+use weather_events;
+create or replace view co2_max_min as 
+select 'After 2016-01-01' as atmosphere_date,
+count(*) as number_of_atmosphere_dates,
+max(deaths)as highest_death ,max(co2_ppm) as highest_co2_ppm,
+min(co2_ppm) as lowest_co2_ppm
+from atmospheric_data
+join event_atmospheres
+using (atmos_id)
+left join events
+using (event_id)
+where 'year_month' > '2016-01-01';
+
+
+/*view 6 linking*/
+create or replace view link as
+select region_id, event_id
+from regions_affected
+join event_atmospheres
+using(event_id)
+order by region_id ASC; 
